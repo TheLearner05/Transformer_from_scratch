@@ -16,9 +16,9 @@ class TwoLangDataset(Dataset):
         self.tgt_lang = tgt_lang
         self.seq_len = seq_len
 
-        self.sos_token = torch.Tensor([tokenizer_src.token_to_id(["[SOS]"])], dtype=torch.int64)
-        self.eos_token = torch.Tensor([tokenizer_src.token_to_id(["[EOS]"])], dtype=torch.int64)
-        self.pad_token = torch.Tensor([tokenizer_src.token_to_id(["[PAD]"])], dtype=torch.int64)
+        self.sos_token = torch.tensor([tokenizer_src.token_to_id("[SOS]")], dtype=torch.int64)
+        self.eos_token = torch.tensor([tokenizer_src.token_to_id("[EOS]")], dtype=torch.int64)
+        self.pad_token = torch.tensor([tokenizer_src.token_to_id("[PAD]")], dtype=torch.int64)
         
     def __len__(self):
         return len(self.ds)
@@ -31,7 +31,7 @@ class TwoLangDataset(Dataset):
         tgt_text = src_target_pair['translation'][self.tgt_lang]
 
 
-        enc_input_tokens = self.tokenizer_src_encode(src_text).ids
+        enc_input_tokens = self.tokenizer_src.encode(src_text).ids
         dec_input_tokens = self.tokenizer_tgt.encode(tgt_text).ids
 
         enc_num_padding_tokens = self.seq_len - len(enc_input_tokens) -2 # sos and eos token
@@ -46,7 +46,7 @@ class TwoLangDataset(Dataset):
                 self.sos_token,
                 torch.tensor(enc_input_tokens, dtype=torch.int64),
                 self.eos_token,
-                torch.tensor([self.pad_token] * enc_num_padding_tokens, dtype = torch.int64)
+                torch.tensor([self.pad_token.item()] * enc_num_padding_tokens, dtype = torch.int64)
 
             ]
         )
@@ -55,7 +55,7 @@ class TwoLangDataset(Dataset):
             [
                 self.sos_token,
                 torch.tensor(dec_input_tokens, dtype=torch.int64),
-                torch.tensor([self.pad_token] * dec_num_padding_tokens, dtype = torch.int64)
+                torch.tensor([self.pad_token.item()] * dec_num_padding_tokens, dtype = torch.int64)
 
             ]
         )
@@ -65,7 +65,7 @@ class TwoLangDataset(Dataset):
                 
                 torch.tensor(dec_input_tokens, dtype=torch.int64),
                 self.eos_token,
-                torch.tensor([self.pad_token] * dec_num_padding_tokens, dtype = torch.int64)
+                torch.tensor([self.pad_token.item()] * dec_num_padding_tokens, dtype = torch.int64)
 
             ]
         )
@@ -79,9 +79,9 @@ class TwoLangDataset(Dataset):
             "encoder_input" : encoder_input,
             "decoder_input" : decoder_input,
             #encoder mask is to make sure self attention is not calculated for padded tokens
-            "encoder_mask" : (encoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int(), #(1,1,seq_len)
+            "encoder_mask" : (encoder_input != self.pad_token.item()).unsqueeze(0).unsqueeze(0).int(), #(1,1,seq_len)
             # decoder mask to avoid pading tokens,  causal mask is to make sure each word will lok at only previous word
-            "decoder_mask" : (decoder_input != self.pad_token).unsqueeze(0).unsqueeze(0).int() & causal_mask(decoder_input.size(0)), # (1,seq_len) & (1,seq_len, seq_len)
+            "decoder_mask" : (decoder_input != self.pad_token.item()).unsqueeze(0).unsqueeze(0).int() & causal_mask(decoder_input.size(0)), # (1,seq_len) & (1,seq_len, seq_len)
             "label" : label,
             "src_text" : src_text,
             "tgt_text" : tgt_text
